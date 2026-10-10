@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { BarChart3, Bell, Building2, CalendarDays, CheckCircle2, ChevronRight, CircleX, DoorOpen, Dumbbell, Grid2X2, Home, LayoutDashboard, MapPin, MessageCircle, Music, Music2, UserCircle, Users, UsersRound } from 'lucide-react'
+import { BarChart3, Bell, Building2, CalendarDays, CheckCircle2, ChevronRight, CircleX, DoorOpen, Dumbbell, Fingerprint, Grid2X2, Home, LayoutDashboard, MapPin, MessageCircle, Music, Music2, UserCircle, Users, UsersRound } from 'lucide-react'
 import { supabase } from './lib/supabase'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
+import { Passkeys } from '@capawesome/capacitor-passkeys'
 import './App.css'
 
 type ClubMembership = {
@@ -85,6 +86,30 @@ function initialStatisticsTo() {
   return new Date().toISOString().slice(0, 10)
 }
 
+function passkeyErrorMessage(error: unknown) {
+  if (error && typeof error === 'object') {
+    const errorCode = 'error_code' in error && typeof error.error_code === 'string' ? error.error_code : ''
+    const errorName = 'name' in error && typeof error.name === 'string' ? error.name : ''
+    const errorMessage = 'message' in error && typeof error.message === 'string' ? error.message : ''
+
+    if (errorCode === 'passkey_disabled') return 'Passkey-Anmeldung ist in Supabase noch nicht aktiviert.'
+    if (errorCode === 'webauthn_credential_not_found') return 'Für dieses Konto wurde noch kein Passkey eingerichtet.'
+    if (errorName === 'NotAllowedError') return 'Die Passkey-Anmeldung wurde abgebrochen oder ist abgelaufen.'
+    if (errorName === 'NotSupportedError') return 'Dieses Gerät unterstützt die Passkey-Anmeldung nicht.'
+    if (errorMessage) return errorMessage
+  }
+  return 'Die Passkey-Anmeldung ist fehlgeschlagen. Bitte versuche es erneut.'
+}
+
+function normalizeNativePasskeyCredential(credential: object) {
+  // The Capacitor plugin returns the WebAuthn JSON shape but does not include
+  // the optional client-extension result required by auth-js' server type.
+  return {
+    ...credential,
+    clientExtensionResults: {},
+  } as Parameters<typeof supabase.auth.passkey.verifyAuthentication>[0]['credential']
+}
+
 const navigationItems: Array<{ module: string; label: string; icon: ReactNode }> = [
   { module: 'overview', label: 'Überblick', icon: <LayoutDashboard size={18} strokeWidth={1.8} /> },
   { module: 'statistics', label: 'Statistik', icon: <BarChart3 size={18} strokeWidth={1.8} /> },
@@ -111,6 +136,7 @@ function App() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [passkeyBusy, setPasskeyBusy] = useState(false)
   const [clubName, setClubName] = useState('')
   const [clubCity, setClubCity] = useState('')
   const [creatingClub, setCreatingClub] = useState(false)
@@ -536,6 +562,64 @@ function App() {
     }
 
     setSubmitting(false)
+  }
+
+  async function handlePasskeySignIn() {
+    setPasskeyBusy(true)
+    setMessage('')
+    setError('')
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const { data: authentication, error: optionsError } = await supabase.auth.passkey.startAuthentication()
+        if (optionsError || !authentication) throw optionsError ?? new Error('Passkey-Optionen konnten nicht geladen werden.')
+
+        const credential = await Passkeys.getPasskey(authentication.options as unknown as Parameters<typeof Passkeys.getPasskey>[0])
+        const { data, error: verificationError } = await supabase.auth.passkey.verifyAuthentication({
+          challengeId: authentication.challenge_id,
+          credential: normalizeNativePasskeyCredential(credential),
+        })
+        if (verificationError) throw verificationError
+        if (!data?.user) throw new Error('Es wurde kein Benutzerkonto zurückgegeben.')
+      } else {
+        const { error: signInError } = await supabase.auth.signInWithPasskey()
+        if (signInError) throw signInError
+      }
+      setMessage('Erfolgreich mit Passkey angemeldet.')
+    } catch (passkeyError) {
+      setError(passkeyErrorMessage(passkeyError))
+    } finally {
+      setPasskeyBusy(false)
+    }
+  }
+
+  async function handleRegisterPasskey() {
+    if (!user) return
+    setPasskeyBusy(true)
+    setMessage('')
+    setError('')
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const { data: registration, error: optionsError } = await supabase.auth.passkey.startRegistration()
+        if (optionsError || !registration) throw optionsError ?? new Error('Passkey-Optionen konnten nicht geladen werden.')
+
+        const credential = await Passkeys.createPasskey(registration.options as unknown as Parameters<typeof Passkeys.createPasskey>[0])
+        const { error: verificationError } = await supabase.auth.passkey.verifyRegistration({
+          challengeId: registration.challenge_id,
+          credential: normalizeNativePasskeyCredential(credential),
+        })
+        if (verificationError) throw verificationError
+      } else {
+        const { error: registrationError } = await supabase.auth.registerPasskey()
+        if (registrationError) throw registrationError
+      }
+      setMessage(Capacitor.isNativePlatform() ? 'Fingerabdruck-/Passkey-Anmeldung eingerichtet.' : 'Windows Hello-/Passkey-Anmeldung eingerichtet.')
+    } catch (passkeyError) {
+      setError(passkeyErrorMessage(passkeyError))
+    } finally {
+      setPasskeyBusy(false)
+    }
   }
 
   async function handlePasswordReset(event: FormEvent<HTMLFormElement>) {
@@ -1635,6 +1719,14 @@ function App() {
                     {savingProfile ? 'Wird gespeichert …' : 'Profil speichern'}
                   </button>
                 </form>
+                <div className="passkey-settings">
+                  <h3>Passkey-Anmeldung</h3>
+                  <p>{Capacitor.isNativePlatform() ? 'Richte die Anmeldung per Fingerabdruck, Face ID oder Geräte-PIN ein.' : 'Richte die Anmeldung per Windows Hello oder einem anderen Passkey ein.'}</p>
+                  <button className="secondary-button passkey-button" type="button" onClick={() => void handleRegisterPasskey()} disabled={passkeyBusy}>
+                    <Fingerprint size={18} aria-hidden="true" />
+                    {passkeyBusy ? 'Wird eingerichtet …' : Capacitor.isNativePlatform() ? 'Fingerabdruck-Anmeldung einrichten' : 'Windows Hello einrichten'}
+                  </button>
+                </div>
               </section>
               <section className={`module-panel ${activeModule === 'members' ? 'active' : ''}`}>
                 <h2 id="members">Mitglieder einladen</h2>
@@ -1827,12 +1919,23 @@ function App() {
           {error && <p className="form-error">{error}</p>}
           {message && <p className="form-message">{message}</p>}
 
-          <button className="primary-button" type="submit" disabled={submitting}>
-            {submitting ? 'Bitte warten …' : isPasswordReset ? 'Link senden' : isSignUp ? 'Registrieren' : 'Anmelden'}
-          </button>
-        </form>
+           <button className="primary-button" type="submit" disabled={submitting}>
+             {submitting ? 'Bitte warten …' : isPasswordReset ? 'Link senden' : isSignUp ? 'Registrieren' : 'Anmelden'}
+           </button>
+         </form>
 
-        {isPasswordReset ? (
+        {!isPasswordReset && !isSignUp && (
+          <div className="passkey-login">
+            <div className="passkey-divider"><span>oder</span></div>
+            <button className="secondary-button passkey-button" type="button" onClick={() => void handlePasskeySignIn()} disabled={submitting || passkeyBusy}>
+              <Fingerprint size={18} aria-hidden="true" />
+              {passkeyBusy ? 'Passkey wird geprüft …' : Capacitor.isNativePlatform() ? 'Mit Fingerabdruck anmelden' : 'Mit Windows Hello anmelden'}
+            </button>
+            <p className="passkey-hint">Sicher anmelden – ohne Passwort zu übertragen.</p>
+          </div>
+        )}
+
+         {isPasswordReset ? (
           <button className="text-button" type="button" onClick={() => setIsPasswordReset(false)}>
             Zurück zur Anmeldung
           </button>

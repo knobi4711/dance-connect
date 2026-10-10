@@ -10,4 +10,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // Passkeys use WebAuthn and are backed by Supabase Auth. The flag is
+    // required by older auth-js versions and harmless on newer versions.
+    experimental: { passkey: true },
+  },
+})

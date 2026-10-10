@@ -17,6 +17,7 @@
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.5.3",
     "@capacitor/ios": "^8.5.3",
+    "@capawesome/capacitor-passkeys": "^0.1.2",
     "@supabase/supabase-js": "^2.117.3",
     "@tailwindcss/vite": "^4.3.3",
     "lucide-react": "^1.53.0",
