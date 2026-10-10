@@ -1,0 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap');
+
+:root {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  color: #131b2e;
+  background: #faf8ff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --surface: #faf8ff;
+  --surface-card: #ffffff;
+  --surface-soft: #f2f3ff;
+  --text: #131b2e;
+  --text-muted: #3d4a42;
+  --border: #e2e8f0;
+  --primary: #059669;
+  --primary-dark: #047857;
+  --secondary: #7c3aed;
+  --accent: #ea580c;
+  --shadow-card: 0 1px 3px rgb(15 23 42 / 5%), 0 1px 2px -1px rgb(15 23 42 / 5%);
+}
+
+:root[data-theme='dark'] {
+  color: #eef0ff;
+  background: #131b2e;
+  --surface: #131b2e;
+  --surface-card: #1e293b;
+  --surface-soft: #283548;
+  --text: #eef0ff;
+  --text-muted: #b8c2d4;
+  --border: #3b4a61;
+  --primary: #68dba9;
+  --primary-dark: #85f8c4;
+  --secondary: #a78bfa;
+  --accent: #fb923c;
+  --shadow-card: 0 1px 3px rgb(0 0 0 / 20%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100svh;
+  margin: 0;
+  background: var(--surface);
+}
+
+:root[data-theme='dark'] body {
+  background: var(--surface);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  min-height: 44px;
+}
+
+#root {
+  min-height: 100svh;
+}

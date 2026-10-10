@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DanceConnect</string>
+    <string name="title_activity_main">DanceConnect</string>
+    <string name="package_name">com.danceconnect.app</string>
+    <string name="custom_url_scheme">com.danceconnect.app</string>
+</resources>
