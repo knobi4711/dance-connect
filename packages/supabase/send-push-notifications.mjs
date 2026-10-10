@@ -8,7 +8,8 @@
  * - DeviceNotRegistered -> device wird deaktiviert
  * - Netzwerkfehler -> Zeile bleibt unversendet (Retry beim nächsten Lauf)
  *
- * Env (.env in packages/supabase): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+ * Env (.env in packages/supabase): SUPABASE_URL, SUPABASE_SECRET_KEY,
+ * legacy SUPABASE_SERVICE_ROLE_KEY is also accepted for older projects,
  * optional EXPO_ACCESS_TOKEN. DRY_RUN=1: nur lesen + loggen, keine Writes/Sends.
  * Usage: node send-push-notifications.mjs
  */
@@ -27,16 +28,17 @@ import {
 
 config({ path: resolve(process.cwd(), '.env') });
 
-const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, EXPO_ACCESS_TOKEN } = process.env;
+const { SUPABASE_URL, SUPABASE_SECRET_KEY, SUPABASE_SERVICE_ROLE_KEY, EXPO_ACCESS_TOKEN } = process.env;
+const SUPABASE_ADMIN_KEY = SUPABASE_SECRET_KEY || SUPABASE_SERVICE_ROLE_KEY;
 const DRY_RUN = process.env.DRY_RUN === '1';
 const BATCH_LIMIT = 100;
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error('Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY in .env');
+if (!SUPABASE_URL || !SUPABASE_ADMIN_KEY) {
+  console.error('Missing SUPABASE_URL / SUPABASE_SECRET_KEY in .env');
   process.exit(1);
 }
 
-const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+const admin = createClient(SUPABASE_URL, SUPABASE_ADMIN_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 

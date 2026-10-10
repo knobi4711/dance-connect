@@ -22,8 +22,12 @@ $env:DRY_RUN = '1'; node send-push-notifications.mjs  # nur lesen + loggen
 ```
 
 Benötigte Env (`packages/supabase/.env`): `SUPABASE_URL`,
-`SUPABASE_SERVICE_ROLE_KEY`, optional `EXPO_ACCESS_TOKEN` (höhere
+`SUPABASE_SECRET_KEY` (`sb_secret_...`), optional `EXPO_ACCESS_TOKEN` (höhere
 Expo-Quotas).
+
+Der Secret Key wird im Supabase-Dashboard unter **Settings → API Keys**
+erstellt. Der alte Name `SUPABASE_SERVICE_ROLE_KEY` wird aus
+Abwärtskompatibilität weiterhin akzeptiert.
 
 ## Verhalten
 
@@ -46,5 +50,6 @@ pnpm --filter @pfotennetz/supabase test send-push.test.mjs
 ```
 
 Für GitHub Actions muss unter **Settings → Secrets and variables → Actions**
-mindestens das Repository-Secret `SUPABASE_SERVICE_ROLE_KEY` hinterlegt sein.
+das Repository-Secret `SUPABASE_SECRET_KEY` mit dem Supabase Secret Key
+hinterlegt sein.
 `EXPO_ACCESS_TOKEN` ist nur bei aktivierter Expo Push Security erforderlich.
