@@ -26,8 +26,7 @@ Benötigte Env (`packages/supabase/.env`): `SUPABASE_URL`,
 Expo-Quotas).
 
 Der Secret Key wird im Supabase-Dashboard unter **Settings → API Keys**
-erstellt. Der alte Name `SUPABASE_SERVICE_ROLE_KEY` wird aus
-Abwärtskompatibilität weiterhin akzeptiert.
+erstellt.
 
 ## Verhalten
 
